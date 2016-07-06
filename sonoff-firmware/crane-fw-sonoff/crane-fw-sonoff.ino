@@ -11,58 +11,60 @@ int   port       = 1883;
 #define LED_PIN 13
 
 int relay = LOW;
-int led = HIGH;
+String macaddress;
+
+String macToStr(const uint8_t* mac)
+{
+  String result;
+  for (int i = 0; i < 6; ++i) {
+    result += String(mac[i], 16);
+    if (i < 5)
+      result += ':';
+  }
+  return result;
+}
+
 
 void setup()
 {
+    uint8_t mac[6];
     Serial.begin(115200);
     Serial.flush();
+
     Serial.println("Crane sonoff v0.0.1");
-    Serial.println("Subscribing to foo/bar/#");
+    
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, relay);
+    
+    // Blink... we are alive...
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
     delay(500);
-    digitalWrite(LED_PIN, led);
+    digitalWrite(LED_PIN, HIGH);
+
+    WiFi.macAddress(mac);
+    macaddress = macToStr(mac);
     
     Espanol.begin(ssid, password, myhostname, broker, port);
 
-    //Serial.println("Setup... 2");
-
     //Espanol.setDebug(true);
-    Espanol.subscribe("foo/bar/#");
+    Espanol.subscribe("crane/sonoff/" + macaddress);
     
-    //Serial.println("Setup... 3");
-
     Espanol.setCallback([](char *topic, byte *payload, unsigned int length) {
         payload[length] = '\0';
         String command = (char*) payload;
         String mytopic = topic;
-        
-        String msg = mytopic;
-        msg += " - ";
-        msg += command;
-        Serial.println(msg);
-        
-        if (mytopic == "foo/bar/relay") {
-            //Serial.println("topic entered...");
+                
+        if (mytopic == "crane/sonoff/"+ macaddress) {
             if ( command == "on") {
-              //Serial.println("on");
               relay = HIGH;
-              led = LOW; 
             } else if (command == "off") {
-              //Serial.println("off");
               relay = LOW;
-              led = HIGH;
             }
             digitalWrite(RELAY_PIN, relay);
-            digitalWrite(LED_PIN, led);
+            digitalWrite(LED_PIN, relay == HIGH ? LOW : HIGH);
         }
     });
-    
-    //Serial.println("Setup... 4");
-
 }
 
 void loop()

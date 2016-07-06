@@ -1,3 +1,3 @@
 # Sonoff Firmware mit MQTT
-Benutzt Projekt Espanol.
+Benutzt Projekt [Espanol](https://github.com/misterdanb/Espanol).
 
