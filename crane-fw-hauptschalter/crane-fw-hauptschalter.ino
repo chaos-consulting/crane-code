@@ -2,8 +2,8 @@
 #include <ESP8266mDNS.h>
 #include <Espanol.h>
 
-char * ssid     = "SkyNet";
-char * password = "DbmiWsMD6Ko4Pc";
+char * ssid     = "";
+char * password = "";
 
 char hostString[16] = {0};
 
@@ -40,7 +40,7 @@ void setup()
 {
   uint8_t mac[6];
   int n;
-
+  
   main_switch_position = -1;
 
   pinMode(MAIN_SWITCH_PIN, INPUT);
@@ -51,10 +51,10 @@ void setup()
 
   Serial.begin(74880);
   delay(100);
+#ifdef SERIAL_VERBOSE
   Serial.flush();
   Serial.println("Crane mainswitch v0.0.1");
 
-#ifdef SERIAL_VERBOSE
   Serial.print("Hostname: ");
   Serial.println(hostString);
 #endif
@@ -91,7 +91,7 @@ void setup()
   Serial.println("mDNS responder started");
 #endif
 
-  n = MDNS.queryService("mqtt", "tcp");
+  n = MDNS.queryService("mqtts", "tcp");
 
 #ifdef SERIAL_VERBOSE
   Serial.println("mDNS query done");
@@ -120,7 +120,8 @@ void setup()
   // not ideal... but Espanol does not support mDNS
   WiFi.disconnect();
   delay(100);
-  Espanol.begin((String)ssid, (String)password, (String)hostString, MDNS.hostname(0), (int)MDNS.port(0));
+  String ipStr = String(MDNS.IP(0)[0]) + '.' + String(MDNS.IP(0)[1]) + '.' + String(MDNS.IP(0)[2]) + '.' + String(MDNS.IP(0)[3]);
+  Espanol.begin((String)ssid, (String)password, (String)hostString, ipStr, (int)MDNS.port(0));
 
 #ifdef SERIAL_VERBOSE
   Espanol.setDebug(true);
@@ -148,7 +149,7 @@ void loop()
 
   // on startup send info to mqtt broker
   if (main_switch_position == -1) {
-    Espanol.publish("crane/mainswitch/info", "started");
+    Espanol.publish("crane/mainswitch/info", hostString);
   }
 
   if (main_switch_position != tmp_position) {
