@@ -2,8 +2,15 @@
 #include <ESP8266mDNS.h>
 #include <Espanol.h>
 
-char * ssid     = "";
-char * password = "";
+/* Get WLAN information from external file (excluded via .gitignore):
+ *
+ * char const * ssid     = "MY_SSID";
+ * char const * password = "MY_SECRET_WLAN_PASSWORD";
+ *
+ */
+#include "wlan_credentials.h"
+
+#define SERIAL_VERBOSE 1
 
 char hostString[16] = {0};
 
@@ -34,8 +41,8 @@ String macToStr(const uint8_t* mac)
 }
 
 /*
-   setup things...
-*/
+ * setup things...
+ */
 void setup()
 {
   uint8_t mac[6];
@@ -51,35 +58,36 @@ void setup()
 
   Serial.begin(74880);
   delay(100);
+
+  WiFi.macAddress(mac);
+  macaddress = macToStr(mac);
+
+
 #ifdef SERIAL_VERBOSE
   Serial.flush();
   Serial.println("Crane mainswitch v0.0.1");
 
   Serial.print("Hostname: ");
   Serial.println(hostString);
+
+  Serial.print("MAC-Adress: ");
+  Serial.println(macaddress);
 #endif
 
   WiFi.hostname(hostString);
   WiFi.begin(ssid, password);
+#ifdef SERIAL_VERBOSE
+  Serial.print("Connecting to WLAN ");
+#endif
   while (WiFi.status() != WL_CONNECTED) {
     delay(250);
-
 #ifdef SERIAL_VERBOSE
     Serial.print(".");
 #endif
-
   }
-
-#ifdef SERIAL_VERBOSE
   Serial.println();
-#endif
-
-  WiFi.macAddress(mac);
-  macaddress = macToStr(mac);
 
 #ifdef SERIAL_VERBOSE
-  Serial.print("MAC-Adress: ");
-  Serial.println(macaddress);
   Serial.println("Sending mDNS query");
 #endif
 
@@ -121,7 +129,9 @@ void setup()
   WiFi.disconnect();
   delay(100);
   String ipStr = String(MDNS.IP(0)[0]) + '.' + String(MDNS.IP(0)[1]) + '.' + String(MDNS.IP(0)[2]) + '.' + String(MDNS.IP(0)[3]);
-  Espanol.begin((String)ssid, (String)password, (String)hostString, ipStr, (int)MDNS.port(0));
+  //Espanol.begin((String)ssid, (String)password, (String)hostString, ipStr, (int)MDNS.port(0));
+  
+  Espanol.begin((String)ssid, (String)password, (String)hostString, ipStr, (int)MDNS.port(0), String("testeruser"), String("testeruser123"));
 
 #ifdef SERIAL_VERBOSE
   Espanol.setDebug(true);
@@ -135,12 +145,10 @@ void loop()
   // Wait for connections (wifi / mqtt) to be established...
   while (Espanol.connected() != true) {
     delay(100);
-
-#ifdef SERIAL_VERBOSE
-    Serial.print(".");
-#endif
-
     Espanol.loop();
+#ifdef SERIAL_VERBOSE
+    if ( Espanol.connected() != true ) {Serial.print("."); }
+#endif
   }
 
   Espanol.loop();
@@ -173,3 +181,4 @@ void loop()
     delay(700);
   }
 }
+
